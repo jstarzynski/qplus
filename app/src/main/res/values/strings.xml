@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">QPlus</string>
+    <string name="button_check_in">Check In</string>
+    <string name="button_check_out">Check Out</string>
+    <string name="title_error_default">Error</string>
+    <string name="error_msg_select_store_id">Please select Store ID before checking in.</string>
+    <string name="error_msg_auth_error">Unable to authenticate with Nexo Cloud. Do you want to retry?</string>
+    <string name="progress_message_default">Loading in progress…</string>
+</resources>
