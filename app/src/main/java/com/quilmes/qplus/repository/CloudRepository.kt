@@ -1,39 +1,40 @@
 package com.quilmes.qplus.repository
 
-import android.annotation.SuppressLint
 import android.arch.lifecycle.LiveData
 import android.arch.lifecycle.MutableLiveData
 import android.content.Context
-import android.provider.Settings
 import com.elstatgroup.elstat.sdk.api.NexoCloud
 import com.elstatgroup.elstat.sdk.errror.NexoError
 import com.elstatgroup.elstat.sdk.model.NexoAuthenticatedUser
+import com.elstatgroup.elstat.sdk.model.identifier.NexoBluetoothIdentifier
+import com.elstatgroup.elstat.sdk.model.identifier.NexoStoreIdentifier
+import com.elstatgroup.elstat.sdk.model.metadata.NexoCoolerMetadata
 import com.quilmes.qplus.model.SingleResult
-
 
 class CloudRepository {
 
-    fun authenticateUser(context: Context): LiveData<SingleResult<NexoAuthenticatedUser>> {
+    private val metadataCallbackMap = mutableMapOf<String, NexoCloud.NexoCoolerMetadataCallback>()
+    private val controllersByStoreResultsMap = mutableMapOf<String, MutableLiveData<SingleResult<List<NexoBluetoothIdentifier>>>>()
 
-        val result = MutableLiveData<SingleResult<NexoAuthenticatedUser>>()
-
-        NexoCloud.authenticate(context, "${getUUID(context)}@quilmes.com", object: NexoCloud.NexoAuthenticateCallback {
-
-            override fun onAuthenticate(user: NexoAuthenticatedUser) {
-                result.postValue(SingleResult(user))
-            }
-
-            override fun onError(error: NexoError) {
-                result.postValue(SingleResult(error))
-            }
-        })
-
+    fun getControllersByStoreId(context: Context, authenticatedUser: NexoAuthenticatedUser, storeId: String): LiveData<SingleResult<List<NexoBluetoothIdentifier>>> {
+        val result = generateControllersByStoreResultStream(storeId)
+        NexoCloud.getNexoCoolerMetadata(context, authenticatedUser, listOf(NexoStoreIdentifier(storeId)), generateMetadataCallback(storeId))
         return result
     }
 
-    @SuppressLint("HardwareIds")
-    private fun getUUID(context: Context): String {
-        return Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
-    }
+    private fun generateControllersByStoreResultStream(storeId: String) = controllersByStoreResultsMap[storeId] ?: MutableLiveData()
+
+    private fun generateMetadataCallback(storeId: String) = metadataCallbackMap[storeId]
+            ?: object : NexoCloud.NexoCoolerMetadataCallback {
+
+                override fun onError(nexoError: NexoError) {
+                    controllersByStoreResultsMap[storeId]?.postValue(SingleResult(nexoError))
+                }
+
+                override fun onMetadata(coolersMetada: MutableList<NexoCoolerMetadata>) {
+                    controllersByStoreResultsMap[storeId]?.postValue(SingleResult(coolersMetada.map { it.bluetoothIdentifier }))
+                }
+
+            }.also { metadataCallbackMap[storeId] = it }
 
 }
