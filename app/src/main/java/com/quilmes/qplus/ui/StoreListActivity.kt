@@ -57,6 +57,7 @@ class StoreListActivity : AppCompatActivity() {
         checkInButton.setOnClickListener {
             adapter.getSelectedStoreId()?.let {
                 val intent = Intent(this, StoreActivity::class.java)
+                viewModel.authenticationStream.value?.getResult()?.let { intent.putExtra(StoreActivity.EXTRA_AUTH_USER, it.userName) }
                 intent.putExtra(StoreActivity.EXTRA_STORE_ID, it)
                 startActivity(intent)
             } ?: showErrorMessage(R.string.error_msg_select_store_id)

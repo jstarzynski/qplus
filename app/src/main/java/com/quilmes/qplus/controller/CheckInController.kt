@@ -1,4 +1,4 @@
-package com.quilmes.qplus.usecase
+package com.quilmes.qplus.controller
 
 import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
@@ -11,14 +11,16 @@ import com.elstatgroup.elstat.sdk.model.NexoCooler
 import com.elstatgroup.elstat.sdk.model.NexoProgress
 import com.elstatgroup.elstat.sdk.model.identifier.NexoBluetoothIdentifier
 import com.quilmes.qplus.model.NexoStoreCooler
+import com.quilmes.qplus.model.NexoStoreCoolerStatus
 import com.quilmes.qplus.model.NexoStoreState
 import com.quilmes.qplus.model.SingleResult
 import com.quilmes.qplus.repository.CloudRepository
 
-class CheckInToStoreUseCase {
+object CheckInController {
 
     private val cloudRepository = CloudRepository()
 
+    private val processedStoreUpdates = mutableMapOf<NexoBluetoothIdentifier, String>()
     private val autoSyncListenersMap = mutableMapOf<String, NexoAutoSyncListener>()
     private val nexoStoreStateMap = mutableMapOf<String, NexoStoreState>()
 
@@ -27,12 +29,11 @@ class CheckInToStoreUseCase {
     fun checkIn(context: Context, authenticatedUser: NexoAuthenticatedUser, storeId: String) {
 
         nexoStoreStateMap[storeId] = NexoStoreState()
-        nexoStoreCoolersStreamMap[storeId] = MutableLiveData()
 
         retrieveControllersFromCloud(context, authenticatedUser, storeId)
 
         NexoSync.getInstance().clearAutoSyncCache(context, authenticatedUser)
-        generateAutoSyncListener(storeId).let {
+        generateAutoSyncListener(context, authenticatedUser, storeId).let {
             autoSyncListenersMap[storeId] = it
             NexoSync.getInstance().addAutoSyncListener(it)
         }
@@ -44,8 +45,32 @@ class CheckInToStoreUseCase {
         autoSyncListenersMap.remove(storeId)?.let { NexoSync.getInstance().removeAutoSyncListener(it) }
     }
 
-    private fun streamCoolersState() {
+    fun getStream(storeId: String) = nexoStoreCoolersStreamMap[storeId] ?: MutableLiveData<List<NexoStoreCooler>>().also { nexoStoreCoolersStreamMap[storeId] = it }
 
+    private fun notifyCoolersStateChanged(context: Context, authenticatedUser: NexoAuthenticatedUser, storeId: String) {
+        nexoStoreStateMap[storeId]?.also {
+            val coolers = mutableMapOf<String, NexoStoreCooler>()
+
+            it.expectedControllers.minus(it.detectedControllers).forEach { coolers[it.bluetoothId] = NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.NOT_FOUND) }
+            it.detectedControllers.intersect(it.expectedControllers).forEach { coolers[it.bluetoothId] = NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.PENDING) }
+            it.detectedControllers.minus(it.expectedControllers).forEach {
+                coolers[it.bluetoothId] = NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.PENDING)
+                updateStoreId(context, authenticatedUser, storeId, it)
+            }
+
+            it.decommissionedControllers.forEach { coolers[it.bluetoothId] =  NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.REQUIRES_COMMISSIONING) }
+            it.syncedControllers.forEach { coolers[it.bluetoothId] =  NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.SYNCED) }
+            it.syncProgress.forEach { (identifier, progress) -> coolers[identifier.bluetoothId] = NexoStoreCooler(identifier.bluetoothId, NexoStoreCoolerStatus.PENDING, progress)}
+
+            getStream(storeId).postValue(coolers.values.sortedBy { it.status.ordinal })
+        }
+    }
+
+    private fun updateStoreId(context: Context, authenticatedUser: NexoAuthenticatedUser, storeId: String, bluetoothIdentifier: NexoBluetoothIdentifier) {
+        if (processedStoreUpdates[bluetoothIdentifier] != storeId) {
+            cloudRepository.updateStoreId(context, authenticatedUser, bluetoothIdentifier, storeId)
+            processedStoreUpdates[bluetoothIdentifier] = storeId
+        }
     }
 
     private fun retrieveControllersFromCloud(context: Context, authenticatedUser: NexoAuthenticatedUser, storeId: String) {
@@ -56,16 +81,18 @@ class CheckInToStoreUseCase {
                 if (response?.isSuccessful() == true)
                     nexoStoreStateMap[storeId]?.let {
                         nexoStoreStateMap[storeId] = it.copy(expectedControllers = it.expectedControllers + response.getResult())
+                        notifyCoolersStateChanged(context, authenticatedUser, storeId)
                     }
             }
         })
     }
 
-    private fun generateAutoSyncListener(storeId: String) = object : NexoAutoSyncListener {
+    private fun generateAutoSyncListener(context: Context, authenticatedUser: NexoAuthenticatedUser, storeId: String) = object : NexoAutoSyncListener {
 
         override fun onCoolerLocated(devices: MutableCollection<NexoCooler>, locatedCooler: NexoBluetoothIdentifier) {
             nexoStoreStateMap[storeId]?.let {
                 nexoStoreStateMap[storeId] = it.copy(detectedControllers = it.detectedControllers + locatedCooler)
+                notifyCoolersStateChanged(context, authenticatedUser, storeId)
             }
         }
 
@@ -75,16 +102,19 @@ class CheckInToStoreUseCase {
             if (nexoCooler.commissioningState == NexoCooler.CommissioningState.UNCOMMISSIONED)
                 nexoStoreStateMap[storeId]?.let {
                     nexoStoreStateMap[storeId] = it.copy(decommissionedControllers = it.decommissionedControllers + nexoCooler.bluetoothIdentifier)
+                    notifyCoolersStateChanged(context, authenticatedUser, storeId)
                 }
             else if (nexoCooler.isSynced)
                 nexoStoreStateMap[storeId]?.let {
                     nexoStoreStateMap[storeId] = it.copy(syncedControllers = it.syncedControllers + nexoCooler.bluetoothIdentifier)
+                    notifyCoolersStateChanged(context, authenticatedUser, storeId)
                 }
         }
 
         override fun onCoolerSyncProgress(identifier: NexoBluetoothIdentifier, nexoProgress: NexoProgress) {
             nexoStoreStateMap[storeId]?.let {
                 nexoStoreStateMap[storeId] = it.copy(syncProgress = it.syncProgress + (identifier to nexoProgress.percents))
+                notifyCoolersStateChanged(context, authenticatedUser, storeId)
             }
         }
 

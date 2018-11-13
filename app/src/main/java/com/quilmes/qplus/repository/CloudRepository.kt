@@ -37,4 +37,14 @@ class CloudRepository {
 
             }.also { metadataCallbackMap[storeId] = it }
 
+
+    fun updateStoreId(context: Context, authenticatedUser: NexoAuthenticatedUser, bluetoothIdentifier: NexoBluetoothIdentifier, storeId: String) {
+        NexoCloud.updateNexoCoolerMetadata(context, authenticatedUser,
+                NexoCoolerMetadata.Builder(bluetoothIdentifier).nexoStoreIdentifier(NexoStoreIdentifier(storeId)).build(),
+                object: NexoCloud.NexoCoolerUpdateMetadataCallback {
+                    override fun onMetadataUpdated(nexoCoolerMetadata: NexoCoolerMetadata?) { }
+                    override fun onError(nexoError: NexoError) { }
+                })
+    }
+
 }

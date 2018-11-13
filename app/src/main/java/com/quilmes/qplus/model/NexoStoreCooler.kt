@@ -1,9 +1,9 @@
 package com.quilmes.qplus.model
 
 enum class NexoStoreCoolerStatus {
-    PENDING, SYNCED, NOT_FOUND, REQUIRES_COMMISSIONING
+    NOT_FOUND, REQUIRES_COMMISSIONING, PENDING, SYNCED
 }
 
 class NexoStoreCooler(val name: String,
                       val status: NexoStoreCoolerStatus,
-                      val progress: Int)
+                      val progress: Int = 0)
