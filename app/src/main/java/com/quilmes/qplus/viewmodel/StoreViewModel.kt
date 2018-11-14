@@ -9,9 +9,10 @@ import com.quilmes.qplus.model.NexoStoreCooler
 
 class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
-    fun checkIn(authenticatedUser: NexoAuthenticatedUser, storeId: String): LiveData<List<NexoStoreCooler>> {
+    fun checkIn(authenticatedUser: NexoAuthenticatedUser, storeId: String) {
         CheckInController.checkIn(getApplication(), authenticatedUser, storeId)
-        return CheckInController.getStream(storeId)
     }
+
+    fun coolers(storeId: String): LiveData<List<NexoStoreCooler>> = CheckInController.getStream(storeId)
 
 }

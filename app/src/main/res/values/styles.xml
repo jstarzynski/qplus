@@ -16,6 +16,9 @@
     </style>
 
      <style name="AppWidget.TextView.Large" parent="Base.TextAppearance.AppCompat.Large"/>
+     <style name="AppWidget.TextView.Large.White">
+         <item name="android:textColor">#ffffff</item>
+     </style>
      <style name="AppWidget.TextView.Large.Extra">
          <item name="android:textSize">@dimen/text_size_extra_large</item>
      </style>

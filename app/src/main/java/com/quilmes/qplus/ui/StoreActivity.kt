@@ -1,5 +1,6 @@
 package com.quilmes.qplus.ui
 
+import android.arch.lifecycle.Observer
 import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
@@ -25,11 +26,17 @@ class StoreActivity : AppCompatActivity() {
         val authUser = NexoAuthenticatedUser(intent.extras.getString(EXTRA_AUTH_USER))
 
         storeId.text = storeIdValue
+        storeCoolersInfo.text = getString(R.string.coolers_info_stub, 0)
 
         viewModel = ViewModelProviders.of(this).get(StoreViewModel::class.java)
 
         if (savedInstanceState == null)
             viewModel.checkIn(authUser, storeIdValue)
+
+        viewModel.coolers(storeIdValue).observe(this, Observer {
+            storeCoolersInfo.text = getString(R.string.coolers_info_stub, it?.size ?: 0)
+        })
+
     }
 
     override fun onBackPressed() {}
