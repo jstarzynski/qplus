@@ -1,5 +1,5 @@
 <manifest package="com.quilmes.qplus"
-          xmlns:android="http://schemas.android.com/apk/res/android">
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="true"
@@ -9,13 +9,14 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-                <activity android:name=".ui.StoreListActivity">
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN"/>
-                        <category android:name="android.intent.category.LAUNCHER"/>
-                    </intent-filter>
-                </activity>
+        <activity android:name=".ui.StoreListActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
         <activity android:name=".ui.StoreActivity"/>
+        <activity android:name=".ui.CoolerListActivity" />
 
     </application>
 </manifest>

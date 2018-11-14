@@ -22,8 +22,8 @@ class StoreActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.store_activity)
 
-        val storeIdValue = intent.extras.getString(EXTRA_STORE_ID)
-        val authUser = NexoAuthenticatedUser(intent.extras.getString(EXTRA_AUTH_USER))
+        val storeIdValue = intent?.extras?.getString(EXTRA_STORE_ID) ?: String()
+        val authUser = NexoAuthenticatedUser(intent?.extras?.getString(EXTRA_AUTH_USER))
 
         storeId.text = storeIdValue
         storeCoolersInfo.text = getString(R.string.coolers_info_stub, 0)
