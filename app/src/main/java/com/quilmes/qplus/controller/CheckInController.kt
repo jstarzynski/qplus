@@ -4,6 +4,7 @@ import android.arch.lifecycle.MutableLiveData
 import android.arch.lifecycle.Observer
 import android.content.Context
 import com.elstatgroup.elstat.sdk.api.NexoAutoSyncListener
+import com.elstatgroup.elstat.sdk.api.NexoCoolerProgressListener
 import com.elstatgroup.elstat.sdk.api.NexoSync
 import com.elstatgroup.elstat.sdk.errror.NexoError
 import com.elstatgroup.elstat.sdk.model.NexoAuthenticatedUser
@@ -22,6 +23,7 @@ object CheckInController {
 
     private val processedStoreUpdates = mutableMapOf<NexoBluetoothIdentifier, String>()
     private val autoSyncListenersMap = mutableMapOf<String, NexoAutoSyncListener>()
+    private val syncProgressListenersMap = mutableMapOf<String, NexoCoolerProgressListener>()
     private val nexoStoreStateMap = mutableMapOf<String, NexoStoreState>()
 
     private val nexoStoreCoolersStreamMap = mutableMapOf<String, MutableLiveData<List<NexoStoreCooler>>>()
@@ -37,12 +39,17 @@ object CheckInController {
             autoSyncListenersMap[storeId] = it
             NexoSync.getInstance().addAutoSyncListener(it)
         }
+        generateProgressSyncListener(context, authenticatedUser, storeId).let {
+            syncProgressListenersMap[storeId] = it
+            NexoSync.getInstance().addSyncListener(it)
+        }
         NexoSync.getInstance().beginAutoSync(context, authenticatedUser)
     }
 
     fun checkOut(context: Context, storeId: String) {
         NexoSync.getInstance().stopAutoSync(context)
         autoSyncListenersMap.remove(storeId)?.let { NexoSync.getInstance().removeAutoSyncListener(it) }
+        syncProgressListenersMap.remove(storeId)?.let { NexoSync.getInstance().removeSyncListener(it) }
     }
 
     fun getStream(storeId: String) = nexoStoreCoolersStreamMap[storeId] ?: MutableLiveData<List<NexoStoreCooler>>().also { nexoStoreCoolersStreamMap[storeId] = it }
@@ -59,8 +66,8 @@ object CheckInController {
             }
 
             it.decommissionedControllers.forEach { coolers[it.bluetoothId] =  NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.REQUIRES_COMMISSIONING) }
-            it.syncedControllers.forEach { coolers[it.bluetoothId] =  NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.SYNCED) }
             it.syncProgress.forEach { (identifier, progress) -> coolers[identifier.bluetoothId] = NexoStoreCooler(identifier.bluetoothId, NexoStoreCoolerStatus.PENDING, progress)}
+            it.syncedControllers.forEach { coolers[it.bluetoothId] =  NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.SYNCED) }
 
             getStream(storeId).postValue(coolers.values.sortedBy { it.status.ordinal })
         }
@@ -119,6 +126,20 @@ object CheckInController {
         }
 
         override fun onCoolerDisappeared(devices: MutableCollection<NexoCooler>, disappearedCooler: NexoBluetoothIdentifier) {}
+
+    }
+
+    private fun generateProgressSyncListener(context: Context, authenticatedUser: NexoAuthenticatedUser, storeId: String) = object : NexoCoolerProgressListener {
+
+        override fun onError(nexoError: NexoError) {}
+
+        override fun onCoolerProgress(nexoCooler: NexoCooler, progress: NexoProgress) {
+            if (nexoCooler.isSynced)
+                nexoStoreStateMap[storeId]?.let {
+                    nexoStoreStateMap[storeId] = it.copy(syncedControllers = it.syncedControllers + nexoCooler.bluetoothIdentifier)
+                    notifyCoolersStateChanged(context, authenticatedUser, storeId)
+                }
+        }
 
     }
 

@@ -34,7 +34,7 @@ class CoolerListAdapter : RecyclerView.Adapter<CoolerListAdapter.CoolerItemViewH
     override fun onBindViewHolder(viewHolder: CoolerItemViewHolder, position: Int) {
         viewHolder.name.text = items[position].name
         viewHolder.status.text = items[position].status.name
-        items[position].progress.also { if (it > 0) viewHolder.progress.text = "$it%" }
+        items[position].progress.also { viewHolder.progress.text = if (it > 0) "$it%" else ""  }
     }
 
 }

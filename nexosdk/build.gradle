@@ -1,2 +1,2 @@
 configurations.maybeCreate("default")
-artifacts.add("default", file('nexosdk-Dev-QuilmesDev-release.aar'))
+artifacts.add("default", file('nexosdk-Dev-ElstatDev-release.aar'))

@@ -7,4 +7,8 @@
     <string name="error_msg_auth_error">Unable to authenticate with Nexo Cloud. Do you want to retry?</string>
     <string name="progress_message_default">Loading in progress…</string>
     <string name="coolers_info_stub">Coolers in the store: %d</string>
+    <string name="summary_unsynced_stub">%d coolers not synced</string>
+    <string name="summary_decommissioned_stub">%d coolers require commissioning</string>
+    <string name="summary_synced_stub">%d coolers synced</string>
+    <string name="title_summary">Summary</string>
 </resources>

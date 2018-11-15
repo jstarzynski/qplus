@@ -26,7 +26,7 @@ class AuthRepository {
     }
 
     fun authenticateUser(context: Context): LiveData<SingleResult<NexoAuthenticatedUser>> {
-        NexoCloud.authenticate(context, "${getUUID(context)}@quilmes.com", authenticateCallback)
+        NexoCloud.authenticate(context, "${getUUID(context)}@elstat.com", authenticateCallback)
         return authenticateResult
     }
 

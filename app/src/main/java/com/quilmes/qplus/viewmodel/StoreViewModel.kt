@@ -13,6 +13,10 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         CheckInController.checkIn(getApplication(), authenticatedUser, storeId)
     }
 
+    fun checkOut(storeId: String) {
+        CheckInController.checkOut(getApplication(), storeId)
+    }
+
     fun coolers(storeId: String): LiveData<List<NexoStoreCooler>> = CheckInController.getStream(storeId)
 
 }
