@@ -58,16 +58,16 @@ object CheckInController {
         nexoStoreStateMap[storeId]?.also {
             val coolers = mutableMapOf<String, NexoStoreCooler>()
 
-            it.expectedControllers.minus(it.detectedControllers).forEach { coolers[it.bluetoothId] = NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.NOT_FOUND) }
-            it.detectedControllers.intersect(it.expectedControllers).forEach { coolers[it.bluetoothId] = NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.PENDING) }
-            it.detectedControllers.minus(it.expectedControllers).forEach {
-                coolers[it.bluetoothId] = NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.PENDING)
+            it.commissionedControllers.minus(it.expectedControllers).forEach {
                 updateStoreId(context, authenticatedUser, storeId, it)
             }
 
-            it.decommissionedControllers.forEach { coolers[it.bluetoothId] =  NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.REQUIRES_COMMISSIONING) }
+            it.detectedControllers.forEach { coolers[it.bluetoothId] = NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.PENDING) }
+            it.expectedControllers.minus(it.detectedControllers).forEach { coolers[it.bluetoothId] = NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.NOT_FOUND) }
+
             it.syncProgress.forEach { (identifier, progress) -> coolers[identifier.bluetoothId] = NexoStoreCooler(identifier.bluetoothId, NexoStoreCoolerStatus.PENDING, progress)}
             it.syncedControllers.forEach { coolers[it.bluetoothId] =  NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.SYNCED) }
+            it.decommissionedControllers.forEach { coolers[it.bluetoothId] =  NexoStoreCooler(it.bluetoothId, NexoStoreCoolerStatus.REQUIRES_COMMISSIONING) }
 
             getStream(storeId).postValue(coolers.values.sortedBy { it.status.ordinal })
         }
@@ -106,12 +106,19 @@ object CheckInController {
         override fun onError(nexoError: NexoError) {}
 
         override fun onCoolerUpdated(nexoCooler: NexoCooler) {
-            if (nexoCooler.commissioningState == NexoCooler.CommissioningState.UNCOMMISSIONED)
-                nexoStoreStateMap[storeId]?.let {
+
+            when {
+                nexoCooler.commissioningState == NexoCooler.CommissioningState.UNCOMMISSIONED -> nexoStoreStateMap[storeId]?.let {
                     nexoStoreStateMap[storeId] = it.copy(decommissionedControllers = it.decommissionedControllers + nexoCooler.bluetoothIdentifier)
                     notifyCoolersStateChanged(context, authenticatedUser, storeId)
                 }
-            else if (nexoCooler.isSynced)
+                else -> nexoStoreStateMap[storeId]?.let {
+                    nexoStoreStateMap[storeId] = it.copy(commissionedControllers = it.commissionedControllers + nexoCooler.bluetoothIdentifier)
+                    notifyCoolersStateChanged(context, authenticatedUser, storeId)
+                }
+            }
+
+            if (nexoCooler.isSynced)
                 nexoStoreStateMap[storeId]?.let {
                     nexoStoreStateMap[storeId] = it.copy(syncedControllers = it.syncedControllers + nexoCooler.bluetoothIdentifier)
                     notifyCoolersStateChanged(context, authenticatedUser, storeId)
@@ -134,7 +141,8 @@ object CheckInController {
         override fun onError(nexoError: NexoError) {}
 
         override fun onCoolerProgress(nexoCooler: NexoCooler, progress: NexoProgress) {
-            if (nexoCooler.isSynced)
+            if (nexoCooler.isSynced
+                    || (nexoCooler.commissioningState != NexoCooler.CommissioningState.UNCOMMISSIONED && progress.percents == 100))
                 nexoStoreStateMap[storeId]?.let {
                     nexoStoreStateMap[storeId] = it.copy(syncedControllers = it.syncedControllers + nexoCooler.bluetoothIdentifier)
                     notifyCoolersStateChanged(context, authenticatedUser, storeId)

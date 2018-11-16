@@ -17,11 +17,32 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    flavorDimensions "company"
+
+    productFlavors {
+
+        elstat {
+            applicationIdSuffix "elstat"
+            versionNameSuffix "elstat"
+            dimension "company"
+            buildConfigField "String", "USERNAME_SUFFIX", "\"@elstat.com\""
+        }
+
+        quilmes {
+            dimension "company"
+            buildConfigField "String", "USERNAME_SUFFIX", "\"@qplus.quilmes.com\""
+        }
+
+    }
+
 }
 
 dependencies {
-    implementation"org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
-    implementation project(':nexosdk')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+
+    elstatImplementation project(':nexosdk-elstat')
+    quilmesImplementation project(':nexosdk-quilmes')
 
     implementation 'com.afollestad.material-dialogs:core:0.9.4.5'
 

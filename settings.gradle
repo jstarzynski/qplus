@@ -1,1 +1,1 @@
-include ':app', ':nexosdk'
+include ':app', ':nexosdk-quilmes', ':nexosdk-elstat'

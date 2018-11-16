@@ -8,6 +8,7 @@ import android.provider.Settings
 import com.elstatgroup.elstat.sdk.api.NexoCloud
 import com.elstatgroup.elstat.sdk.errror.NexoError
 import com.elstatgroup.elstat.sdk.model.NexoAuthenticatedUser
+import com.quilmes.qplus.BuildConfig
 import com.quilmes.qplus.model.SingleResult
 
 
@@ -26,7 +27,7 @@ class AuthRepository {
     }
 
     fun authenticateUser(context: Context): LiveData<SingleResult<NexoAuthenticatedUser>> {
-        NexoCloud.authenticate(context, "${getUUID(context)}@elstat.com", authenticateCallback)
+        NexoCloud.authenticate(context, "${getUUID(context)}${BuildConfig.USERNAME_SUFFIX}", authenticateCallback)
         return authenticateResult
     }
 

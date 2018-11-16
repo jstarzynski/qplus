@@ -22,7 +22,8 @@ class CloudRepository {
         return result
     }
 
-    private fun generateControllersByStoreResultStream(storeId: String) = controllersByStoreResultsMap[storeId] ?: MutableLiveData()
+    private fun generateControllersByStoreResultStream(storeId: String) = controllersByStoreResultsMap[storeId]
+            ?: MutableLiveData<SingleResult<List<NexoBluetoothIdentifier>>>().also { controllersByStoreResultsMap[storeId] = it }
 
     private fun generateMetadataCallback(storeId: String) = metadataCallbackMap[storeId]
             ?: object : NexoCloud.NexoCoolerMetadataCallback {
@@ -40,7 +41,7 @@ class CloudRepository {
 
     fun updateStoreId(context: Context, authenticatedUser: NexoAuthenticatedUser, bluetoothIdentifier: NexoBluetoothIdentifier, storeId: String) {
         NexoCloud.updateNexoCoolerMetadata(context, authenticatedUser,
-                NexoCoolerMetadata.Builder(bluetoothIdentifier).nexoStoreIdentifier(NexoStoreIdentifier(storeId)).build(),
+                NexoCoolerMetadata.Builder(bluetoothIdentifier).nexoStoreIdentifier(NexoStoreIdentifier(storeId)).storeName(storeId).build(),
                 object: NexoCloud.NexoCoolerUpdateMetadataCallback {
                     override fun onMetadataUpdated(nexoCoolerMetadata: NexoCoolerMetadata?) { }
                     override fun onError(nexoError: NexoError) { }
