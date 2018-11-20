@@ -11,4 +11,6 @@
     <string name="summary_decommissioned_stub">%d coolers require commissioning</string>
     <string name="summary_synced_stub">%d coolers synced</string>
     <string name="title_summary">Summary</string>
+    <string name="action_get_bluetooth_log">Bluetooth Log</string>
+    <string name="msg_send_bt_log">Send Bluetooth Log</string>
 </resources>

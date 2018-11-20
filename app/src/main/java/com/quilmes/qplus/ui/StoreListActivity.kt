@@ -10,6 +10,8 @@ import android.os.Bundle
 import android.support.annotation.StringRes
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import com.afollestad.materialdialogs.MaterialDialog
 import com.elstatgroup.elstat.sdk.errror.NexoError
@@ -21,6 +23,7 @@ class StoreListActivity : AppCompatActivity() {
 
     private val permissionsRequestCode = 666
     private lateinit var viewModel: StoreListViewModel
+    private var progressDialog: MaterialDialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,6 +31,21 @@ class StoreListActivity : AppCompatActivity() {
         initViews()
         initViewModel()
     }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.store_list_menu, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem?) =
+            if (item?.itemId == R.id.action_get_bluetooth_log) {
+                viewModel.authenticationStream.value?.getResult()?.let {
+                    viewModel.generateUriForLog(this, it)
+                    showProgress()
+                }
+                true
+            } else
+                super.onOptionsItemSelected(item)
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         if (requestCode == permissionsRequestCode) {
@@ -81,6 +99,18 @@ class StoreListActivity : AppCompatActivity() {
                     }
                 }
             })
+
+            viewModel.getLogUriStream().observe(this, Observer {
+                hideProgress()
+                if (it?.isSuccessful() == true) {
+                    val shareIntent = Intent().apply {
+                        action = Intent.ACTION_SEND
+                        putExtra(Intent.EXTRA_STREAM, it.getResult())
+                        type = "text/plain"
+                    }
+                    startActivity(Intent.createChooser(shareIntent, getString(R.string.msg_send_bt_log)))
+                }
+            })
         }
     }
 
@@ -106,6 +136,21 @@ class StoreListActivity : AppCompatActivity() {
                 .content(resId)
                 .positiveText(android.R.string.ok)
                 .show()
+    }
+
+    private fun showProgress() {
+        if (progressDialog == null)
+            progressDialog = MaterialDialog.Builder(this)
+                    .title("Please wait")
+                    .content("Operation in progress")
+                    .progress(true, 0)
+                    .cancelable(false)
+                    .show()
+    }
+
+    private fun hideProgress() {
+        progressDialog?.dismiss()
+        progressDialog = null
     }
 
 }
