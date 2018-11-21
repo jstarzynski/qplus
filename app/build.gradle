@@ -23,8 +23,8 @@ android {
     productFlavors {
 
         elstat {
-            applicationIdSuffix "elstat"
-            versionNameSuffix "elstat"
+            applicationIdSuffix ".elstat"
+            versionNameSuffix "-elstat"
             dimension "company"
             buildConfigField "String", "USERNAME_SUFFIX", "\"@elstat.com\""
         }
