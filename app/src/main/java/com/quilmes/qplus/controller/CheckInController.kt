@@ -141,10 +141,19 @@ object CheckInController {
         override fun onError(nexoError: NexoError) {}
 
         override fun onCoolerProgress(nexoCooler: NexoCooler, progress: NexoProgress) {
+
             if (nexoCooler.isSynced
                     || (nexoCooler.commissioningState != NexoCooler.CommissioningState.UNCOMMISSIONED && progress.percents == 100))
                 nexoStoreStateMap[storeId]?.let {
                     nexoStoreStateMap[storeId] = it.copy(syncedControllers = it.syncedControllers + nexoCooler.bluetoothIdentifier)
+                    notifyCoolersStateChanged(context, authenticatedUser, storeId)
+                }
+
+            if (nexoCooler.commissioningState != NexoCooler.CommissioningState.UNCOMMISSIONED)
+                nexoStoreStateMap[storeId]?.let {
+                    nexoStoreStateMap[storeId] = it.copy(
+                            decommissionedControllers = it.decommissionedControllers - nexoCooler.bluetoothIdentifier,
+                            commissionedControllers = it.commissionedControllers + nexoCooler.bluetoothIdentifier)
                     notifyCoolersStateChanged(context, authenticatedUser, storeId)
                 }
         }
